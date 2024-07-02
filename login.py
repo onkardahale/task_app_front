@@ -4,7 +4,6 @@ import requests
 from streamlit_cookies_manager import EncryptedCookieManager
 import json
 
-# Define your API endpoint
 AUTH_ENDPOINT = "http://localhost:8000/auth"
 
 # Initialize the encrypted cookie manager
@@ -16,26 +15,6 @@ cookies = EncryptedCookieManager(
 if not cookies.ready():
     # Wait for the component to load and send us current cookies.
     st.stop()
-
-def authenticate():
-    st.title("Login")
-    
-    with st.form("login_form"):
-        uid = st.text_input("User ID")
-        submit_button = st.form_submit_button("Login")
-
-    if submit_button:
-        if uid:
-            # Attempt to authenticate
-            auth_status, user_data = login_user(uid)
-            if auth_status:
-                st.success(f"Welcome, {user_data['name']}!")
-                save_user_data(user_data)
-                st.experimental_rerun()  # Rerun the app to load the main page
-            else:
-                st.error("Authentication failed. Please check your User ID.")
-        else:
-            st.warning("Please enter your User ID.")
 
 @st.cache_data
 def login_user(uid):
@@ -60,7 +39,7 @@ def logout():
     cookies["authenticated"] = ""
     cookies["user_data"] = ""
     cookies.save()
-    st.experimental_rerun()
+    st.rerun()
 
 def is_authenticated():
     return cookies.get("authenticated", "False") == "True"
@@ -71,7 +50,27 @@ def get_user_data():
         return json.loads(user_data_str)
     return None
 
-def main_page():
+def login_page():
+    st.title("Login")
+    
+    with st.form("login_form"):
+        uid = st.text_input("User ID")
+        submit_button = st.form_submit_button("Login")
+
+    if submit_button:
+        if uid:
+            # Attempt to authenticate
+            auth_status, user_data = login_user(uid)
+            if auth_status:
+                st.success(f"Welcome, {user_data['name']}!")
+                save_user_data(user_data)
+                st.rerun()  # Rerun the app to load the welcome page
+            else:
+                st.error("Authentication failed. Please check your User ID.")
+        else:
+            st.warning("Please enter your User ID.")
+
+def welcome_page():
     user_data = get_user_data()
     if user_data:
         st.title(f"Welcome, {user_data['name']}!")
@@ -100,13 +99,6 @@ def main_page():
                     box-shadow: 0 0 0 5px #3b83f65f;
                     color: #fff;
                 }
-
-                .logout-button {
-                    position: fixed; /* Fixed position */
-                    top: 20px;
-                    right: 20px;
-                    z-index: 1000; /* Ensure logout button is above other elements */
-                }
             </style>
         """
 
@@ -124,9 +116,12 @@ def main_page():
         if st.button("Logout"):
             logout()
 
-# Main application logic
-if __name__ == "__main__":
+
+def main():
     if is_authenticated():
-        main_page()
+        welcome_page()
     else:
-        authenticate()
+        login_page()
+
+if __name__ == "__main__":
+    main()
